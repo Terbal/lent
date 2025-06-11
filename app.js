@@ -23,6 +23,15 @@ let isReceiverMode = false;
 let selectedDevice = null;
 let textCharacteristic = null;
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then((reg) => console.log("SW enregistré :", reg.scope))
+      .catch((err) => console.error("Erreur SW :", err));
+  });
+}
+
 // Vérifier la disponibilité de Web Bluetooth
 function checkBluetoothAvailability() {
   if (!navigator.bluetooth) {
