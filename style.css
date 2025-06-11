@@ -1,0 +1,327 @@
+:root {
+    --primary: #4361ee;
+    --secondary: #3f37c9;
+    --accent: #4895ef;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --success: #4cc9f0;
+    --warning: #f72585;
+    --gray: #6c757d;
+    --light-gray: #e9ecef;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: var(--light);
+}
+
+.container {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 500px;
+    overflow: hidden;
+}
+
+header {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+header p {
+    color: var(--light-gray);
+    font-size: 0.9rem;
+}
+
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.15);
+    font-size: 0.85rem;
+}
+
+.bluetooth-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bluetooth-icon {
+    width: 16px;
+    height: 16px;
+    background: var(--success);
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.bluetooth-icon.off {
+    background: var(--warning);
+}
+
+.main-content {
+    padding: 20px;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.text-box {
+    width: 100%;
+    min-height: 120px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    font-size: 1rem;
+    resize: none;
+    margin-bottom: 15px;
+}
+
+.text-box::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+}
+
+.btn:hover {
+    background: var(--secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn.secondary {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.btn.warning {
+    background: var(--warning);
+}
+
+.btn.warning:hover {
+    background: #d61f6f;
+}
+
+.devices-list {
+    list-style: none;
+    margin-top: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.device-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.device-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.device-item.active {
+    background: rgba(67, 97, 238, 0.3);
+    border: 1px solid var(--primary);
+}
+
+.device-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    font-size: 1.2rem;
+}
+
+.device-info {
+    flex: 1;
+}
+
+.device-name {
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.device-status {
+    font-size: 0.8rem;
+    color: var(--light-gray);
+}
+
+.device-status.connected {
+    color: var(--success);
+}
+
+.transfer-status {
+    text-align: center;
+    padding: 15px;
+    font-size: 0.9rem;
+    min-height: 20px;
+}
+
+.transfer-status.success {
+    color: var(--success);
+}
+
+.transfer-status.error {
+    color: var(--warning);
+}
+
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.popup.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.popup-content {
+    background: rgba(33, 37, 41, 0.95);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    padding: 30px;
+    text-align: center;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.popup.active .popup-content {
+    transform: translateY(0);
+}
+
+.popup h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: var(--success);
+}
+
+.popup p {
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.popup-text {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    text-align: left;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.popup-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        border-radius: 15px;
+    }
+    
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .card {
+        padding: 15px;
+    }
+}
