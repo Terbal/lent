@@ -1,12 +1,5 @@
-// service-worker.js
 const CACHE_NAME = "lent-v1";
-const ASSETS = [
-  "./", // page d’accueil
-  "index.html",
-  "app.js",
-  "style.css",
-  "manifest.json",
-];
+const ASSETS = ["./", "index.html", "app.js", "style.css", "manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
