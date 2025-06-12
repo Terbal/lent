@@ -33,7 +33,7 @@ let isReceiverMode = false;
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
-      .register("/lent/service-worker.js", { scope: "/lent/" })
+      .register("service-worker.js", { scope: "/lent/" })
       .then((reg) => console.log("SW enregistré, scope:", reg.scope))
       .catch((err) => console.error("Échec SW:", err));
   });
