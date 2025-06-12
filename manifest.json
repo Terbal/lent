@@ -1,8 +1,11 @@
 {
   "name": "Lent",
   "short_name": "Lent",
+  "start_url": "/lent/index.html",
+  "scope": "/lent/",
+
   "description": "Partage de texte entre appareils via Bluetooth",
-  "start_url": "/",
+
   "display": "standalone",
   "background_color": "#4361ee",
   "theme_color": "#4361ee",
