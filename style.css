@@ -27,11 +27,11 @@ body { background:var(--bg); display:flex; flex-direction:column; min-height:100
 .nav .nav-link:hover { background:var(--card); }
 
 /* — Boutons de mode — */
-.mode-switch { margin-top:2rem; }
+.mode-switch { margin-top:6rem; }
 .mode-btn {
   background:transparent; border:1px solid var(--primary); color:var(--primary);
   padding:.5rem 1rem; margin:0 .25rem; border-radius:var(--radius); cursor:pointer;
-  transition:background var(--transition), color var(--transition);
+  transition:background var(--transition), color var(--transition); 
 }
 .mode-btn.active,
 .mode-btn:hover { background:var(--primary); color:var(--bg); }
@@ -114,9 +114,20 @@ textarea::placeholder { color:rgba(224,224,224,0.6); }
 
 /* — Responsive — */
 @media (max-width: 768px) {
-  .app-container { flex-direction:column; }
-  .sidebar { width:100%; flex-direction:row; justify-content:space-around; padding:1rem; }
-  .mode-switch { display:none; }
+   .app-container { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 1rem;
+  }
+  
+  /* On rend visible la .mode-switch et on la centre */
+  .mode-switch {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
   .main-content { padding:1rem; }
 }
 
@@ -209,12 +220,23 @@ textarea::placeholder { color:rgba(224,224,224,0.6); }
 
 
 /* Hamburger */
+/* — Hamburger par défaut caché — */
 .hamburger {
-  display:none; flex-direction:column; gap:5px; background:transparent;
-  border:none; cursor:pointer; margin:1rem;
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 3000;
 }
+
+/* Les trois barres */
 .hamburger span {
-  width:25px; height:3px; background:var(--text); transition:0.3s;
+  width: 25px;
+  height: 3px;
+  background: var(--text);
+  transition: transform 0.3s, opacity 0.3s;
 }
 .mobile-nav {
   display:none; flex-direction:column; background:var(--card);
@@ -227,8 +249,15 @@ textarea::placeholder { color:rgba(224,224,224,0.6); }
 }
 .mobile-nav a:last-child { border:none; }
 @media(max-width:768px) {
-  .hamburger { display:flex; }
-  .nav { display:none; } /* désactiver la nav desktop */
+.hamburger {
+    display: flex;
+    position: fixed;
+    top: 50px;
+    right: 30px;
+  }
+
+  /* Cache la nav desktop */
+  .nav { display: none !important; }/* désactiver la nav desktop */
 }
 .hamburger.active span:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
 .hamburger.active span:nth-child(2) { opacity:0; }
