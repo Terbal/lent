@@ -13,69 +13,79 @@
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><span>📲</span> ShareClip</h1>
-            <p>Partagez du texte entre appareils sans Internet</p>
-        </header>
-        
-        <div class="status-bar">
-            <div class="bluetooth-status">
-                <span class="bluetooth-icon"></span>
-                <span id="bluetooth-status-text">Bluetooth activé</span>
-            </div>
-            <div id="connection-status">Non connecté</div>
-        </div>
-        
-        <div class="main-content">
-            <div class="card">
-                <h2><span>📋</span> Texte à partager</h2>
-                <textarea class="text-box" id="text-input" placeholder="Sélectionnez du texte dans votre navigateur ou collez-le ici..."></textarea>
-                <button class="btn" id="send-btn">
-                    <span>🚀</span> Envoyer le texte
-                </button>
-            </div>
-            
-            <div class="card">
-                <h2><span>🔍</span> Appareils disponibles</h2>
-                <button class="btn secondary" id="scan-btn">
-                    <span>🔄</span> Rechercher des appareils
-                </button>
-                
-                <ul class="devices-list" id="devices-list">
-                    <!-- Les appareils seront ajoutés dynamiquement ici -->
-                </ul>
-                
-                <div class="transfer-status" id="transfer-status">
-                    Prêt à transférer...
-                </div>
-            </div>
-        </div>
-        
-        <footer>
-            ShareClip - Partage de texte via Bluetooth • Aucune connexion Internet nécessaire
-        </footer>
+  <div class="app-container">
+    <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="/web-app-manifest-512x512.png" alt="Logo Lent">
     </div>
-    
-    <!-- Popup de confirmation côté récepteur -->
-    <div class="popup" id="confirmation-popup">
-        <div class="popup-content">
-            <h3>Demande de transfert</h3>
-            <p><strong id="sender-name">Alice</strong> veut vous envoyer du texte :</p>
-            <div class="popup-text" id="preview-text">
-                Le texte à transférer apparaîtra ici...
-            </div>
-            <p>Souhaitez-vous accepter ce transfert ?</p>
-            
-            <div class="popup-buttons">
-                <button class="btn warning" id="reject-btn">Refuser</button>
-                <button class="btn" id="accept-btn">Accepter</button>
-            </div>
-        </div>
+
+   <!-- NAVIGATION (optionnelle) -->
+   <nav class="nav">
+     <a href="#" class="nav-link active">Accueil</a>
+     <a href="/faq.html" class="nav-link">FAQ</a>
+     <a href="/contact.html" class="nav-link">Contact</a>
+     <a href="/about.html" class="nav-link">À propos</a>
+   </nav>
+
+    <!-- Choix de mode -->
+    <div class="mode-switch">
+      <button id="btn-emitter" class="mode-btn active">Émetteur</button>
+      <button id="btn-receiver" class="mode-btn">Récepteur</button>
     </div>
-    
-    <script src="app.js"></script>
+  </aside>
+
+
+    <!-- Main -->
+    <main class="main-content">
+      <header class="header">
+        <h1>Lent</h1>
+        <p class="subtitle">Rapide comme l’éclair… mais pas tant que ça 😉</p>
+        <div class="mode-indicator">Mode : <span id="mode-label">Émetteur</span></div>
+      </header>
+
+      <section class="card">
+        <h2>1. Texte à partager</h2>
+        <textarea id="text-input" placeholder="Saisis ou sélectionne du texte…"></textarea>
+        <button id="send-btn" class="btn">🚀 Envoyer</button>
+      </section>
+
+      <section class="card">
+        <h2>2. Appareils disponibles</h2>
+        <button id="scan-btn" class="btn outline">🔍 Rechercher</button>
+        <ul id="devices-list" class="devices-list"></ul>
+        <div id="transfer-status" class="status">Prêt à transférer…</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Popup confirmation -->
+  <div id="confirmation-popup" class="popup">
+    <div class="popup-content">
+      <h3>Demande de transfert</h3>
+      <p><strong id="sender-name">Alice</strong> souhaite envoyer :</p>
+      <pre id="preview-text">…</pre>
+      <div class="popup-actions">
+        <button id="reject-btn" class="btn outline">Refuser</button>
+        <button id="accept-btn" class="btn">Accepter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer pro -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="/faq.html">FAQ</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/about.html">À propos</a>
+    </div>
+    <p>© 2025 Lent • Tous droits réservés</p>
+  </footer>
+
+  <script src="/app.js"></script>
 </body>
+
 </html>
