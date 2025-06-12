@@ -29,16 +29,13 @@ let isReceiverMode = false;
 // -----------------------------
 // SERVICE WORKER (PWA)
 // -----------------------------
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((registration) => {
-        console.log("Service Worker enregistré avec succès:", registration);
-      })
-      .catch((error) => {
-        console.error("Échec de l'enregistrement du Service Worker:", error);
-      });
+      .register("service-worker.js", { scope: "./" })
+      .then((reg) => console.log("SW enregistré, scope:", reg.scope))
+      .catch((err) => console.error("SW error:", err));
   });
 }
 

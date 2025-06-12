@@ -1,10 +1,10 @@
 // service-worker.js
 const CACHE_NAME = "lent-v1";
 const ASSETS = [
-  "./", // équivaut à /lent/
+  "./", // page d’accueil
   "index.html",
-  "style.css",
   "app.js",
+  "style.css",
   "manifest.json",
 ];
 
