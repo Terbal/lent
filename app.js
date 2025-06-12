@@ -33,12 +33,19 @@ let isReceiverMode = false;
 // SERVICE WORKER (PWA)
 // -----------------------------
 
+let swRegistration = null;
+
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("service-worker.js", { scope: "/lent/" })
-      .then((reg) => console.log("SW enregistré, scope:", reg.scope))
-      .catch((err) => console.error("Échec SW:", err));
+  window.addEventListener("load", async () => {
+    try {
+      swRegistration = await navigator.serviceWorker.register(
+        "service-worker.js",
+        { scope: "/lent/" }
+      );
+      console.log("SW enregistré, scope:", swRegistration.scope);
+    } catch (err) {
+      console.error("Échec SW:", err);
+    }
   });
 }
 
@@ -259,6 +266,12 @@ function closeScanModal() {
 
 // Affiche une notification
 function notify(title, body) {
+  // Si on a bien la registration du SW, on l’utilise
+  if (swRegistration) {
+    swRegistration.showNotification(title, { body });
+    return;
+  }
+  // Sinon, fallback si la permission a été accordée
   if (Notification.permission === "granted") {
     new Notification(title, { body });
   }
