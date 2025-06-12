@@ -157,3 +157,17 @@ textarea::placeholder { color:rgba(224,224,224,0.6); }
   flex: 1;
   margin: 0 .25rem;
 }
+
+
+/* Page téléchargements */
+.downloads-page {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.download-card {
+  text-align: center;
+}
+.download-card h2 {
+  margin-bottom: 1rem;
+}
