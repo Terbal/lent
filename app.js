@@ -559,3 +559,34 @@ function addRecvRecord(from, text) {
   H.unshift({ from, text, date: new Date().toISOString() });
   saveHistory("historyRecv", H);
 }
+
+// ---- Checking - BLUETOOTH -----------
+
+function checkBluetoothUI() {
+  const scanBtn = document.getElementById("scan-btn");
+  if (!navigator.bluetooth) {
+    scanBtn.disabled = true;
+    updateStatus(
+      "Web Bluetooth non supporté ici. Testez sur Chrome Android ou activez flags Chrome.",
+      "error"
+    );
+    return false;
+  }
+  // Optionnel : vérifier l’availability
+  navigator.bluetooth.getAvailability().then((avail) => {
+    if (!avail) {
+      scanBtn.disabled = true;
+      updateStatus(
+        "Activez le Bluetooth de votre appareil pour utiliser cette fonction.",
+        "error"
+      );
+    }
+  });
+  return true;
+}
+
+// Au lieu de directement dans init()
+window.addEventListener("load", () => {
+  checkBluetoothUI();
+  init();
+});
