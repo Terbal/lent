@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <base href="/lent/">
+    <!-- <base href="/lent/"> -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShareClip - Partage sans Internet</title>
@@ -85,6 +85,18 @@
     </div>
     <p>© 2025 Lent • Tous droits réservés</p>
   </footer>
+
+   <!-- Modal d'installation PWA -->
+  <div id="install-modal" class="install-modal">
+    <div class="install-content">
+      <h3>Ajouter Lent à votre écran d’accueil ?</h3>
+      <p>Installez l’application pour y accéder plus rapidement et hors-ligne.</p>
+      <div class="install-buttons">
+        <button id="install-accept" class="btn">Installer</button>
+        <button id="install-cancel" class="btn outline">Annuler</button>
+      </div>
+    </div>
+  </div>
 
   <script src="./app.js"></script>
 </body>

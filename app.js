@@ -241,6 +241,34 @@ function init() {
   });
 }
 
+let deferredInstallPrompt = null;
+
+// Capter l'événement PWA installable
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault(); // bloque la popup native
+  deferredInstallPrompt = e; // conserve l'événement
+  document.getElementById("install-modal").classList.add("active"); // affiche ta modal custom
+});
+
+// Référencer les boutons
+const installAccept = document.getElementById("install-accept");
+const installCancel = document.getElementById("install-cancel");
+
+// Si l'utilisateur accepte
+installAccept?.addEventListener("click", async () => {
+  document.getElementById("install-modal").classList.remove("active");
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt(); // lance la vraie popup
+  const choice = await deferredInstallPrompt.userChoice;
+  console.log("PWA install choice:", choice.outcome);
+  deferredInstallPrompt = null;
+});
+
+// Si l'utilisateur refuse
+installCancel?.addEventListener("click", () => {
+  document.getElementById("install-modal").classList.remove("active");
+});
+
 window.addEventListener("load", init);
 
 // … en tête du fichier, on conserve SERVICE_UUID, etc.
