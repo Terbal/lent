@@ -29,6 +29,11 @@ let selectedDevice = null;
 let textCharacteristic = null;
 let isReceiverMode = false;
 
+// Demande la permission dès que possible
+if ("Notification" in window && Notification.permission === "default") {
+  Notification.requestPermission();
+}
+
 // -----------------------------
 // SERVICE WORKER (PWA)
 // -----------------------------
@@ -199,12 +204,12 @@ async function sendText() {
     const char = await svc.getCharacteristic(TEXT_CHAR_UUID);
 
     const data = { sender: username, text };
-
-    await char.writeValue(new TextEncoder().encode(payload));
+    const json = JSON.stringify(data);
+    await char.writeValue(new TextEncoder().encode(json));
 
     updateStatus("✅ Envoyé !", "success");
     savePaired(device);
-    addSendRecord(targetName, text);
+    addSendRecord(selectedDevice.name, text);
   } catch (err) {
     console.error(err);
     updateStatus(`❌ Échec: ${err.message}`, "error");
@@ -266,23 +271,20 @@ function closeScanModal() {
 
 // Affiche une notification
 function notify(title, body) {
-  // Si on a bien la registration du SW, on l’utilise
-  if (swRegistration) {
+  // Si on a la registration du SW et la permission, on affiche via le SW
+  if (swRegistration && Notification.permission === "granted") {
     swRegistration.showNotification(title, { body });
-    return;
-  }
-  // Sinon, fallback si la permission a été accordée
-  if (Notification.permission === "granted") {
-    new Notification(title, { body });
+  } else {
+    // Fallback dans l’UI
+    updateStatus(title + " – " + body);
   }
 }
 
-// Quand on clique sur Annuler
-scanCancelBtn.addEventListener("click", () => {
-  updateStatus("Recherche annulée", "error");
-  notify("Scan annulé", "Vous avez annulé la recherche d’appareils.");
-  closeScanModal();
-});
+if ("Notification" in window) {
+  Notification.requestPermission().then((permission) => {
+    console.log("Notification permission:", permission);
+  });
+}
 
 // -----------------------------
 // SCAN DES APPAREILS
@@ -290,6 +292,10 @@ scanCancelBtn.addEventListener("click", () => {
 async function scanDevices() {
   if (!navigator.bluetooth) {
     return updateStatus("Bluetooth non supporté", "error");
+  }
+  const available = await navigator.bluetooth.getAvailability();
+  if (!available) {
+    return updateStatus("Activez le Bluetooth de votre appareil", "error");
   }
 
   try {
@@ -434,10 +440,17 @@ function init() {
 let deferredInstallPrompt = null;
 
 // Capter l'événement PWA installable
+// window.addEventListener("beforeinstallprompt", (e) => {
+//   e.preventDefault(); // bloque la popup native
+//   deferredInstallPrompt = e; // conserve l'événement
+//   document.getElementById("install-modal").classList.add("active"); // affiche ta modal custom
+// });
+
 window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault(); // bloque la popup native
-  deferredInstallPrompt = e; // conserve l'événement
-  document.getElementById("install-modal").classList.add("active"); // affiche ta modal custom
+  e.preventDefault(); // bloque le banner natif
+  deferredInstallPrompt = e; // on stocke
+  // Pour lancer tout de suite :
+  // e.prompt();
 });
 
 // Référencer les boutons
@@ -527,6 +540,22 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// Stockage et affichage de l’historique
+// ----- HISTORIQUES ---------
 
-// Historique des réceptions (Récepteur)
+function loadHistory(key) {
+  return JSON.parse(localStorage.getItem(key) || "[]");
+}
+function saveHistory(key, list) {
+  localStorage.setItem(key, JSON.stringify(list));
+}
+
+function addSendRecord(to, text) {
+  const H = loadHistory("historySend");
+  H.unshift({ to, text, date: new Date().toISOString() });
+  saveHistory("historySend", H);
+}
+function addRecvRecord(from, text) {
+  const H = loadHistory("historyRecv");
+  H.unshift({ from, text, date: new Date().toISOString() });
+  saveHistory("historyRecv", H);
+}
