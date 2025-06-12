@@ -14,7 +14,7 @@
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="shortcut icon" href="./favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
-    <link rel="manifest" href="./site.webmanifest" />
+    <!-- <link rel="manifest" href="./site.webmanifest" /> -->
     
 </head>
 <body>
@@ -26,14 +26,16 @@
     </div>
 
    <!-- NAVIGATION (optionnelle) -->
-   <nav class="nav">
-    <a href="downloads.html" class="nav-link">Téléchargements</a>
-     <a href="#" class="nav-link active">Accueil</a>
-     <a href="./faq.html" class="nav-link">FAQ</a>
-     <a href="./contact.html" class="nav-link">Contact</a>
-     <a href="./about.html" class="nav-link">À propos</a>
-    
-   </nav>
+<button id="hamburger" class="hamburger">
+  <span></span><span></span><span></span>
+</button>
+<nav id="mobile-nav" class="mobile-nav">
+  <a href="index.html">Accueil</a>
+  <a href="downloads.html">Téléchargements</a>
+  <a href="faq.html">FAQ</a>
+  <a href="about.html">À propos</a>
+</nav>
+
 
     <!-- Choix de mode -->
     <div class="mode-switch">
@@ -101,6 +103,41 @@
       </div>
     </div>
   </div>
+
+  
+
+ <div id="username-modal" class="modal">
+
+  <div class="modal-content">
+    <h3>Bienvenue !</h3>
+    <p>Entrez votre pseudo pour commencer :</p>
+    <input type="text" id="username-input" placeholder="Votre pseudo…" />
+    <button id="username-submit" class="btn">Valider</button>
+  </div>
+</div>
+
+<!-- Modal de scan (scan-modal) -->
+<div id="scan-modal" class="modal">
+  <div class="modal-content">
+    <h3>Appareils compatibles</h3>
+    <ul id="scan-device-list"></ul>
+    <button id="associate-btn" class="btn outline" disabled>Associer</button>
+    <button id="scan-cancel" class="btn">Annuler</button>
+  </div>
+</div>
+
+<!-- Historique émetteur -->
+<section id="sender-history" class="card">
+  <h2>Historique d’envois</h2>
+  <ul id="history-send-list" class="history-list"></ul>
+</section>
+
+<!-- Historique récepteur -->
+<section id="receiver-history" class="card" style="display:none;">
+  <h2>Messages reçus</h2>
+  <ul id="history-recv-list" class="history-list"></ul>
+</section>
+
 
 
   

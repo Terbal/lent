@@ -1,5 +1,8 @@
 // -----------------------------
 // CONFIGURATION BLE & CONSTS
+
+// const { text } = require("stream/consumers");
+
 // -----------------------------
 const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 const TEXT_CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
@@ -36,6 +39,52 @@ if ("serviceWorker" in navigator) {
       .register("service-worker.js", { scope: "/lent/" })
       .then((reg) => console.log("SW enregistré, scope:", reg.scope))
       .catch((err) => console.error("Échec SW:", err));
+  });
+}
+
+const hamBtn = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobile-nav");
+hamBtn.addEventListener("click", () => {
+  hamBtn.classList.toggle("active");
+  mobileNav.classList.toggle("active");
+});
+
+// --- Pseudo utilisateur ---
+let username = localStorage.getItem("username") || "";
+
+// Elements
+const userModal = document.getElementById("username-modal");
+const userInput = document.getElementById("username-input");
+const userSubmit = document.getElementById("username-submit");
+// Sélecteurs Mode Émetteur/Récepteur
+const btnEmitter = document.getElementById("btn-emitter");
+const btnReceiver = document.getElementById("btn-receiver");
+const modeLabel = document.getElementById("mode-label");
+
+// Au chargement de la page
+window.addEventListener("load", () => {
+  const storedName = localStorage.getItem("username");
+  if (storedName) {
+    // Si on a déjà un pseudo, on le charge et on cache la modal
+    username = storedName;
+    if (userModal) userModal.classList.remove("active");
+  } else {
+    // Pas de pseudo, on affiche la modal et on bloque l'app
+    if (userModal) userModal.classList.add("active");
+  }
+});
+
+// Quand l’utilisateur valide son pseudo
+if (userSubmit) {
+  userSubmit.addEventListener("click", () => {
+    const val = userInput.value.trim();
+    if (val.length < 2) {
+      alert("Votre pseudo doit contenir au moins 2 caractères.");
+      return;
+    }
+    localStorage.setItem("username", val);
+    username = val;
+    userModal.classList.remove("active");
   });
 }
 
@@ -142,14 +191,13 @@ async function sendText() {
     const svc = await server.getPrimaryService(SERVICE_UUID);
     const char = await svc.getCharacteristic(TEXT_CHAR_UUID);
 
-    const payload = JSON.stringify({
-      sender: `${device.name || "Moi"} @ ${new Date().toLocaleTimeString()}`,
-      text: txt,
-    });
+    const data = { sender: username, text };
+
     await char.writeValue(new TextEncoder().encode(payload));
 
     updateStatus("✅ Envoyé !", "success");
     savePaired(device);
+    addSendRecord(targetName, text);
   } catch (err) {
     console.error(err);
     updateStatus(`❌ Échec: ${err.message}`, "error");
@@ -176,38 +224,166 @@ async function rejectTransfer() {
   updateStatus("Transfert refusé");
 }
 
+// Initialisation Notification API
+if ("Notification" in window && Notification.permission === "default") {
+  Notification.requestPermission();
+}
+
+// Modal elements
+const scanModal = document.getElementById("scan-modal");
+const scanListEl = document.getElementById("scan-device-list");
+const associateBtn = document.getElementById("associate-btn");
+const scanCancelBtn = document.getElementById("scan-cancel");
+let scannedDevice = null;
+
+if (scanCancelBtn) {
+  scanCancelBtn.addEventListener("click", () => {
+    updateStatus("Recherche annulée", "error");
+    notify("Scan annulé", "Vous avez annulé la recherche d’appareils.");
+    closeScanModal();
+  });
+}
+
+// Ouvre le modal
+function openScanModal() {
+  scanListEl.innerHTML = "";
+  associateBtn.disabled = true;
+  scannedDevice = null;
+  scanModal.classList.add("active");
+}
+
+// Ferme le modal
+function closeScanModal() {
+  scanModal.classList.remove("active");
+}
+
+// Affiche une notification
+function notify(title, body) {
+  if (Notification.permission === "granted") {
+    new Notification(title, { body });
+  }
+}
+
+// Quand on clique sur Annuler
+scanCancelBtn.addEventListener("click", () => {
+  updateStatus("Recherche annulée", "error");
+  notify("Scan annulé", "Vous avez annulé la recherche d’appareils.");
+  closeScanModal();
+});
+
 // -----------------------------
 // SCAN DES APPAREILS
 // -----------------------------
 async function scanDevices() {
   if (!navigator.bluetooth) {
-    return updateStatus("Web Bluetooth non supporté", "error");
+    return updateStatus("Bluetooth non supporté", "error");
   }
+
   try {
-    updateStatus("Scan en cours…");
+    updateStatus("✅ Démarrage de la recherche…");
+    notify("Scan démarré", "Recherche d'appareils compatibles");
+
+    // Ouvrir le modal de scan
+    openScanModal();
+
+    // Appel au chooser natif
     const device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: [SERVICE_UUID],
     });
-    if (!device.gatt.connected) await device.gatt.connect();
-    renderDevices([
-      {
-        id: device.id,
-        name: device.name || "Bluetooth",
-        type: "computer",
-      },
-    ]);
-    updateStatus("Appareil trouvé!");
+
+    // Si on arrive ici, un appareil a été choisi
+    updateStatus(`✔ Appareil détecté : ${device.name}`);
+    notify("Appareil trouvé", device.name || "Appareil sans nom");
+
+    // Ajout dans la liste du modal
+    const li = document.createElement("li");
+    li.textContent = device.name || device.id;
+    scanListEl.appendChild(li);
+
+    // Cliquer sur l'élément pour le sélectionner
+    li.addEventListener("click", () => {
+      scanListEl
+        .querySelectorAll("li")
+        .forEach((el) => el.classList.remove("selected"));
+      li.classList.add("selected");
+      scannedDevice = device;
+      associateBtn.disabled = false;
+    });
   } catch (err) {
-    console.error(err);
-    updateStatus(`❌ ${err.message}`, "error");
+    const msg =
+      err.name === "NotFoundError" || err.message.includes("User cancelled")
+        ? "Aucun appareil trouvé ou recherche annulée"
+        : `Erreur lors du scan : ${err.message}`;
+    updateStatus(msg, "error");
+    notify("Scan échoué", msg);
+    console.error("scanDevices error:", err);
+    // Fermer le modal
+    closeScanModal();
   }
+}
+
+associateBtn.addEventListener("click", async () => {
+  if (!scannedDevice) return;
+  updateStatus("🔗 Connexion à " + (scannedDevice.name || scannedDevice.id));
+  notify("Connexion", `Connexion à ${scannedDevice.name}`);
+
+  try {
+    const server = await scannedDevice.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    textCharacteristic = await service.getCharacteristic(TEXT_CHAR_UUID);
+    selectedDevice = scannedDevice;
+
+    updateStatus("✅ Appareil appairé avec succès !");
+    notify("Appairage réussi", scannedDevice.name || scannedDevice.id);
+    savePaired(scannedDevice);
+  } catch (err) {
+    const msg = `Échec de la connexion : ${err.message}`;
+    updateStatus(msg, "error");
+    notify("Erreur de connexion", msg);
+    console.error("associate error:", err);
+  } finally {
+    closeScanModal();
+  }
+});
+
+function handleIncomingText(event) {
+  const raw = new TextDecoder().decode(event.target.value);
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return updateStatus("Données reçues invalides", "error");
+  }
+  // Affiche la popup de confirmation
+  dom.popupSender.textContent = data.sender;
+  dom.popupPreview.textContent = data.text;
+  dom.popupConfirm.classList.add("active");
+
+  // Enregistre dans l’historique réception
+  addRecvRecord(data.sender, data.text);
 }
 
 // -----------------------------
 // INITIALISATION & EVENT LISTENERS
 // -----------------------------
 function init() {
+  let username = localStorage.getItem("username") || "";
+  const userModal = document.getElementById("username-modal");
+  const userInput = document.getElementById("username-input");
+  const userSubmit = document.getElementById("username-submit");
+
+  if (!username && userModal) {
+    userModal.classList.add("active");
+    userSubmit.addEventListener("click", () => {
+      const v = userInput.value.trim();
+      if (v.length < 2) return alert("Pseudo trop court");
+      localStorage.setItem("username", v);
+      username = v;
+      userModal.classList.remove("active");
+    });
+  }
+
   // Status Bluetooth
   if (!navigator.bluetooth) {
     dom.txtBluetoothStatus.textContent = "Non supporté";
@@ -277,9 +453,9 @@ window.addEventListener("load", init);
 let mode = "emitter"; // par défaut
 
 // Sélecteurs supplémentaire
-const btnEmitter = document.getElementById("btn-emitter");
-const btnReceiver = document.getElementById("btn-receiver");
-const modeLabel = document.getElementById("mode-label");
+const sendSection = document.querySelector("#text-input").parentNode;
+const scanSection = document.querySelector("#scan-btn").parentNode;
+const recvHistorySect = document.getElementById("receiver-history");
 
 // SWITCH MODE
 function switchMode(newMode) {
@@ -289,9 +465,14 @@ function switchMode(newMode) {
   btnReceiver.classList.toggle("active", newMode === "receiver");
   updateStatus(`Mode ${modeLabel.textContent} activé`);
 
-  if (newMode === "receiver") {
-    // ATTENTION : appelle initReceiver() directement depuis un click (geste utilisateur)
-    initReceiver();
+  if (newMode === "emitter") {
+    sendSection.style.display = "block";
+    scanSection.style.display = "block";
+    recvHistorySect.style.display = "none";
+  } else {
+    sendSection.style.display = "none";
+    scanSection.style.display = "none";
+    recvHistorySect.style.display = "block";
   }
 }
 
@@ -323,12 +504,16 @@ document.getElementById("scan-btn").addEventListener("click", () => {
 
 // SECRET: ouverture de la page de monitoring
 const secretCode = "monitor";
-let buffer = "";
+let inputBuffer = "";
 document.addEventListener("keydown", (e) => {
-  buffer += e.key.toLowerCase();
-  if (!secretCode.startsWith(buffer)) buffer = "";
-  if (buffer === secretCode) {
+  inputBuffer += e.key.toLowerCase();
+  if (!secretCode.startsWith(inputBuffer)) inputBuffer = "";
+  else if (inputBuffer === secretCode) {
     sessionStorage.setItem("allowMonitor", "yes");
-    window.location.href = "/monitor.html";
+    window.location.href = "monitor.html";
   }
 });
+
+// Stockage et affichage de l’historique
+
+// Historique des réceptions (Récepteur)
