@@ -3,8 +3,22 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const app = express();
-const srv = http.createServer(app);
 
+const cors = require("cors");
+
+// <<< activer CORS pour ton domaine front et pour Replit
+app.use(
+  cors({
+    origin: [
+      "https://terbal.github.io",
+      "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev",
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
+
+const srv = http.createServer(app);
 // Ajoute ces options CORS :
 const io = new Server(srv, {
   cors: {
