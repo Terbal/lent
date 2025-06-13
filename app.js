@@ -1,15 +1,36 @@
 // -----------------------------
-// CONFIGURATION BLE & CONSTS
+// CONFIGURATION & INIT SOCKET
+// -----------------------------
+const socket = io("http://localhost:3000");
 
-// const { text } = require("stream/consumers");
+socket.on("connect", () => {
+  console.log("Connecté au serveur Socket.io, id:", socket.id);
+  if (username) {
+    socket.emit("register", { id: socket.id, username });
+  }
+});
+
+// Écoute la liste des utilisateurs
+socket.on("userList", (users) => {
+  renderDevices(users);
+  updateStatus(`🟢 ${users.length} utilisateurs en ligne`);
+});
+
+// Quand on reçoit un message
+socket.on("receiveText", ({ sender, text, date }) => {
+  addRecvRecord(sender, text);
+  updateStatus(`Message reçu de ${sender}`);
+});
+
+// En cas d’erreur
+socket.on("connect_error", (err) => {
+  console.error("Erreur socket:", err);
+  updateStatus("❌ Impossible de se connecter au serveur", "error");
+});
 
 // -----------------------------
-const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-const TEXT_CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-const STORAGE_KEY_PAIRED = "pairedDevices";
-const RECEIVER_HASH = "#receiver";
-
-// Sélecteurs DOM
+// SÉLECTEURS & VARIABLES GLOBALES
+// -----------------------------
 const dom = {
   inputText: document.getElementById("text-input"),
   btnSend: document.getElementById("send-btn"),
@@ -25,523 +46,74 @@ const dom = {
   txtConnectionStatus: document.getElementById("connection-status"),
 };
 
-let selectedDevice = null;
-let textCharacteristic = null;
-let isReceiverMode = false;
-
-// Demande la permission dès que possible
-if ("Notification" in window && Notification.permission === "default") {
-  Notification.requestPermission();
-}
-
-// -----------------------------
-// SERVICE WORKER (PWA)
-// -----------------------------
-
-let swRegistration = null;
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    try {
-      swRegistration = await navigator.serviceWorker.register(
-        "service-worker.js",
-        { scope: "/lent/" }
-      );
-      console.log("SW enregistré, scope:", swRegistration.scope);
-    } catch (err) {
-      console.error("Échec SW:", err);
-    }
-  });
-}
-
-const hamBtn = document.getElementById("hamburger");
-const mobileNav = document.getElementById("mobile-nav");
-hamBtn.addEventListener("click", () => {
-  hamBtn.classList.toggle("active");
-  mobileNav.classList.toggle("active");
-});
-
-// --- Pseudo utilisateur ---
 let username = localStorage.getItem("username") || "";
-
-// Elements
-const userModal = document.getElementById("username-modal");
-const userInput = document.getElementById("username-input");
-const userSubmit = document.getElementById("username-submit");
-// Sélecteurs Mode Émetteur/Récepteur
-const btnEmitter = document.getElementById("btn-emitter");
-const btnReceiver = document.getElementById("btn-receiver");
-const modeLabel = document.getElementById("mode-label");
-
-// Au chargement de la page
-window.addEventListener("load", () => {
-  const storedName = localStorage.getItem("username");
-  if (storedName) {
-    // Si on a déjà un pseudo, on le charge et on cache la modal
-    username = storedName;
-    if (userModal) userModal.classList.remove("active");
-  } else {
-    // Pas de pseudo, on affiche la modal et on bloque l'app
-    if (userModal) userModal.classList.add("active");
-  }
-});
-
-// Quand l’utilisateur valide son pseudo
-if (userSubmit) {
-  userSubmit.addEventListener("click", () => {
-    const val = userInput.value.trim();
-    if (val.length < 2) {
-      alert("Votre pseudo doit contenir au moins 2 caractères.");
-      return;
-    }
-    localStorage.setItem("username", val);
-    username = val;
-    userModal.classList.remove("active");
-  });
-}
+let selectedDevice = null; // ici device = { id, username }
 
 // -----------------------------
-// UTILS
+// UTILITAIRES
 // -----------------------------
 function updateStatus(msg, type = "") {
   dom.statusTransfer.textContent = msg;
   dom.statusTransfer.className = `transfer-status ${type}`;
 }
 
-function savePaired(device) {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_PAIRED)) || [];
-  if (!saved.some((d) => d.id === device.id)) {
-    saved.push({ id: device.id, name: device.name });
-    localStorage.setItem(STORAGE_KEY_PAIRED, JSON.stringify(saved));
-  }
-}
-
-function loadPaired() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY_PAIRED)) || [];
-}
-
-function renderDevices(devices) {
-  dom.listDevices.innerHTML = devices.length
-    ? devices
+function renderDevices(users) {
+  dom.listDevices.innerHTML = users.length
+    ? users
         .map(
-          (d) => `
-        <li class="device-item" data-id="${d.id}">
-          <div class="device-icon">${d.type === "phone" ? "📱" : "💻"}</div>
+          (u) => `
+        <li class="device-item" data-id="${u.id}">
+          <div class="device-icon">🌐</div>
           <div class="device-info">
-            <div class="device-name">${d.name || "Inconnu"}</div>
-            <div class="device-status">Non connecté</div>
+            <div class="device-name">${u.username}</div>
+            <div class="device-status">${
+              u.id === socket.id ? "Vous" : "En ligne"
+            }</div>
           </div>
         </li>
       `
         )
         .join("")
-    : `<li class="device-item">Aucun appareil</li>`;
+    : `<li class="device-item">Aucun utilisateur en ligne</li>`;
 
-  dom.listDevices.querySelectorAll(".device-item").forEach((item) =>
+  dom.listDevices.querySelectorAll(".device-item").forEach((item) => {
     item.addEventListener("click", () => {
       dom.listDevices
         .querySelectorAll(".active")
         .forEach((el) => el.classList.remove("active"));
       item.classList.add("active");
-      selectedDevice = devices.find((d) => d.id === item.dataset.id);
-      updateStatus(`Sélectionné: ${selectedDevice.name}`);
-    })
-  );
+      const id = item.dataset.id;
+      const name = item.querySelector(".device-name").textContent;
+      selectedDevice = { id, name };
+      updateStatus(`Sélectionné: ${name}`);
+    });
+  });
 }
 
 // -----------------------------
-// MODE RÉCEPTEUR
+// ENVOI DE TEXT via Socket.io
 // -----------------------------
-async function initReceiver() {
-  isReceiverMode = true;
-  updateStatus("Mode récepteur – attente…");
-  try {
-    const device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [SERVICE_UUID] }],
-      optionalServices: [SERVICE_UUID],
-    });
-    const server = await device.gatt.connect();
-    const svc = await server.getPrimaryService(SERVICE_UUID);
-    textCharacteristic = await svc.getCharacteristic(TEXT_CHAR_UUID);
-
-    await textCharacteristic.startNotifications();
-    textCharacteristic.addEventListener("characteristicvaluechanged", (e) => {
-      const { sender, text } = JSON.parse(
-        new TextDecoder().decode(e.target.value)
-      );
-      dom.popupSender.textContent = sender;
-      dom.popupPreview.textContent = text;
-      dom.popupConfirm.classList.add("active");
-    });
-
-    dom.txtConnectionStatus.textContent = `Connecté à : ${device.name}`;
-  } catch (err) {
-    console.error(err);
-    updateStatus(`Erreur récepteur: ${err.message}`, "error");
-  }
-}
-
-// -----------------------------
-// ENVOI DE TEXTE
-// -----------------------------
-async function sendText() {
+function sendText() {
   if (!selectedDevice) {
-    return updateStatus("Sélectionnez un appareil", "error");
+    return updateStatus("Sélectionnez un destinataire", "error");
   }
-  const txt = dom.inputText.value.trim();
-  if (!txt) {
+  const text = dom.inputText.value.trim();
+  if (!text) {
     return updateStatus("Entrez du texte", "error");
   }
 
-  try {
-    updateStatus("Connexion…");
-    const device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: selectedDevice.name }],
-      optionalServices: [SERVICE_UUID],
-    });
-    const server = await device.gatt.connect();
-    const svc = await server.getPrimaryService(SERVICE_UUID);
-    const char = await svc.getCharacteristic(TEXT_CHAR_UUID);
-
-    const data = { sender: username, text };
-    const json = JSON.stringify(data);
-    await char.writeValue(new TextEncoder().encode(json));
-
-    updateStatus("✅ Envoyé !", "success");
-    savePaired(device);
-    addSendRecord(selectedDevice.name, text);
-  } catch (err) {
-    console.error(err);
-    updateStatus(`❌ Échec: ${err.message}`, "error");
-  }
-}
-
-// -----------------------------
-// POPUP ACCEPT/REJECT
-// -----------------------------
-async function acceptTransfer() {
-  await textCharacteristic.writeValue(
-    new TextEncoder().encode(JSON.stringify({ status: "accepted" }))
-  );
-  dom.popupConfirm.classList.remove("active");
-  updateStatus("✅ Transfert accepté");
-  navigator.clipboard.writeText(dom.popupPreview.textContent);
-}
-
-async function rejectTransfer() {
-  await textCharacteristic.writeValue(
-    new TextEncoder().encode(JSON.stringify({ status: "rejected" }))
-  );
-  dom.popupConfirm.classList.remove("active");
-  updateStatus("Transfert refusé");
-}
-
-// Initialisation Notification API
-if ("Notification" in window && Notification.permission === "default") {
-  Notification.requestPermission();
-}
-
-// Modal elements
-const scanModal = document.getElementById("scan-modal");
-const scanListEl = document.getElementById("scan-device-list");
-const associateBtn = document.getElementById("associate-btn");
-const scanCancelBtn = document.getElementById("scan-cancel");
-let scannedDevice = null;
-
-if (scanCancelBtn) {
-  scanCancelBtn.addEventListener("click", () => {
-    updateStatus("Recherche annulée", "error");
-    notify("Scan annulé", "Vous avez annulé la recherche d’appareils.");
-    closeScanModal();
+  socket.emit("sendText", {
+    to: selectedDevice.id,
+    sender: username,
+    text,
   });
-}
-
-// Ouvre le modal
-function openScanModal() {
-  scanListEl.innerHTML = "";
-  associateBtn.disabled = true;
-  scannedDevice = null;
-  scanModal.classList.add("active");
-}
-
-// Ferme le modal
-function closeScanModal() {
-  scanModal.classList.remove("active");
-}
-
-// Affiche une notification
-function notify(title, body) {
-  // Si on a la registration du SW et la permission, on affiche via le SW
-  if (swRegistration && Notification.permission === "granted") {
-    swRegistration.showNotification(title, { body });
-  } else {
-    // Fallback dans l’UI
-    updateStatus(title + " – " + body);
-  }
-}
-
-if ("Notification" in window) {
-  Notification.requestPermission().then((permission) => {
-    console.log("Notification permission:", permission);
-  });
+  updateStatus("✅ Texte envoyé");
+  addSendRecord(selectedDevice.name, text);
 }
 
 // -----------------------------
-// SCAN DES APPAREILS
+// HISTORIQUES
 // -----------------------------
-async function scanDevices() {
-  if (!navigator.bluetooth) {
-    return updateStatus("Bluetooth non supporté", "error");
-  }
-  const available = await navigator.bluetooth.getAvailability();
-  if (!available) {
-    return updateStatus("Activez le Bluetooth de votre appareil", "error");
-  }
-
-  try {
-    updateStatus("✅ Démarrage de la recherche…");
-    notify("Scan démarré", "Recherche d'appareils compatibles");
-
-    // Ouvrir le modal de scan
-    openScanModal();
-
-    // Appel au chooser natif
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [SERVICE_UUID],
-    });
-
-    // Si on arrive ici, un appareil a été choisi
-    updateStatus(`✔ Appareil détecté : ${device.name}`);
-    notify("Appareil trouvé", device.name || "Appareil sans nom");
-
-    // Ajout dans la liste du modal
-    const li = document.createElement("li");
-    li.textContent = device.name || device.id;
-    scanListEl.appendChild(li);
-
-    // Cliquer sur l'élément pour le sélectionner
-    li.addEventListener("click", () => {
-      scanListEl
-        .querySelectorAll("li")
-        .forEach((el) => el.classList.remove("selected"));
-      li.classList.add("selected");
-      scannedDevice = device;
-      associateBtn.disabled = false;
-    });
-  } catch (err) {
-    const msg =
-      err.name === "NotFoundError" || err.message.includes("User cancelled")
-        ? "Aucun appareil trouvé ou recherche annulée"
-        : `Erreur lors du scan : ${err.message}`;
-    updateStatus(msg, "error");
-    notify("Scan échoué", msg);
-    console.error("scanDevices error:", err);
-    // Fermer le modal
-    closeScanModal();
-  }
-}
-
-associateBtn.addEventListener("click", async () => {
-  if (!scannedDevice) return;
-  updateStatus("🔗 Connexion à " + (scannedDevice.name || scannedDevice.id));
-  notify("Connexion", `Connexion à ${scannedDevice.name}`);
-
-  try {
-    const server = await scannedDevice.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    textCharacteristic = await service.getCharacteristic(TEXT_CHAR_UUID);
-    selectedDevice = scannedDevice;
-
-    updateStatus("✅ Appareil appairé avec succès !");
-    notify("Appairage réussi", scannedDevice.name || scannedDevice.id);
-    savePaired(scannedDevice);
-  } catch (err) {
-    const msg = `Échec de la connexion : ${err.message}`;
-    updateStatus(msg, "error");
-    notify("Erreur de connexion", msg);
-    console.error("associate error:", err);
-  } finally {
-    closeScanModal();
-  }
-});
-
-function handleIncomingText(event) {
-  const raw = new TextDecoder().decode(event.target.value);
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    return updateStatus("Données reçues invalides", "error");
-  }
-  // Affiche la popup de confirmation
-  dom.popupSender.textContent = data.sender;
-  dom.popupPreview.textContent = data.text;
-  dom.popupConfirm.classList.add("active");
-
-  // Enregistre dans l’historique réception
-  addRecvRecord(data.sender, data.text);
-}
-
-// -----------------------------
-// INITIALISATION & EVENT LISTENERS
-// -----------------------------
-function init() {
-  let username = localStorage.getItem("username") || "";
-  const userModal = document.getElementById("username-modal");
-  const userInput = document.getElementById("username-input");
-  const userSubmit = document.getElementById("username-submit");
-
-  if (!username && userModal) {
-    userModal.classList.add("active");
-    userSubmit.addEventListener("click", () => {
-      const v = userInput.value.trim();
-      if (v.length < 2) return alert("Pseudo trop court");
-      localStorage.setItem("username", v);
-      username = v;
-      userModal.classList.remove("active");
-    });
-  }
-
-  // Status Bluetooth
-  if (!navigator.bluetooth) {
-    dom.txtBluetoothStatus.textContent = "Non supporté";
-    return updateStatus("Bluetooth indisponible", "error");
-  }
-
-  // Chargement des appairés
-  const paired = loadPaired();
-  if (paired.length) {
-    renderDevices(paired);
-    updateStatus("App. appairés chargés");
-  }
-
-  // Mode récepteur si URL contient #receiver
-  if (window.location.hash === RECEIVER_HASH) {
-    initReceiver();
-  }
-
-  // Listeners
-  dom.btnScan.addEventListener("click", scanDevices);
-  dom.btnSend.addEventListener("click", sendText);
-  dom.btnAccept.addEventListener("click", acceptTransfer);
-  dom.btnReject.addEventListener("click", rejectTransfer);
-
-  // Sélection de texte auto
-  document.addEventListener("mouseup", () => {
-    const sel = window.getSelection().toString().trim();
-    if (sel.length > 20) {
-      dom.inputText.value = sel;
-      updateStatus("Texte détecté – prêt à envoyer");
-    }
-  });
-}
-
-let deferredInstallPrompt = null;
-
-// Capter l'événement PWA installable
-// window.addEventListener("beforeinstallprompt", (e) => {
-//   e.preventDefault(); // bloque la popup native
-//   deferredInstallPrompt = e; // conserve l'événement
-//   document.getElementById("install-modal").classList.add("active"); // affiche ta modal custom
-// });
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault(); // bloque le banner natif
-  deferredInstallPrompt = e; // on stocke
-  // Pour lancer tout de suite :
-  // e.prompt();
-});
-
-// Référencer les boutons
-const installAccept = document.getElementById("install-accept");
-const installCancel = document.getElementById("install-cancel");
-
-// Si l'utilisateur accepte
-installAccept?.addEventListener("click", async () => {
-  document.getElementById("install-modal").classList.remove("active");
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt(); // lance la vraie popup
-  const choice = await deferredInstallPrompt.userChoice;
-  console.log("PWA install choice:", choice.outcome);
-  deferredInstallPrompt = null;
-});
-
-// Si l'utilisateur refuse
-installCancel?.addEventListener("click", () => {
-  document.getElementById("install-modal").classList.remove("active");
-});
-
-window.addEventListener("load", init);
-
-// … en tête du fichier, on conserve SERVICE_UUID, etc.
-
-let mode = "emitter"; // par défaut
-
-// Sélecteurs supplémentaire
-const sendSection = document.querySelector("#text-input").parentNode;
-const scanSection = document.querySelector("#scan-btn").parentNode;
-const recvHistorySect = document.getElementById("receiver-history");
-
-// SWITCH MODE
-function switchMode(newMode) {
-  mode = newMode;
-  modeLabel.textContent = newMode === "emitter" ? "Émetteur" : "Récepteur";
-  btnEmitter.classList.toggle("active", newMode === "emitter");
-  btnReceiver.classList.toggle("active", newMode === "receiver");
-  updateStatus(`Mode ${modeLabel.textContent} activé`);
-
-  if (newMode === "emitter") {
-    sendSection.style.display = "block";
-    scanSection.style.display = "block";
-    recvHistorySect.style.display = "none";
-  } else {
-    sendSection.style.display = "none";
-    scanSection.style.display = "none";
-    recvHistorySect.style.display = "block";
-  }
-}
-
-// Bind des boutons
-btnEmitter.addEventListener("click", () => switchMode("emitter"));
-btnReceiver.addEventListener("click", () => switchMode("receiver"));
-
-// On supprime la détection au load :
-// if (window.location.hash === '#receiver') initReceiver();
-
-// Ensuite, dans tes handlers de scan/send, tu peux gate-keeper sur `mode` :
-
-document.getElementById("send-btn").addEventListener("click", () => {
-  if (mode !== "emitter") {
-    return updateStatus("Pour envoyer, passez en mode Émetteur", "error");
-  }
-  sendText();
-});
-
-document.getElementById("scan-btn").addEventListener("click", () => {
-  if (mode !== "emitter") {
-    return updateStatus(
-      "La recherche d'appareils n'est disponible qu'en mode Émetteur",
-      "error"
-    );
-  }
-  scanDevices();
-});
-
-// SECRET: ouverture de la page de monitoring
-const secretCode = "monitor";
-let inputBuffer = "";
-document.addEventListener("keydown", (e) => {
-  inputBuffer += e.key.toLowerCase();
-  if (!secretCode.startsWith(inputBuffer)) inputBuffer = "";
-  else if (inputBuffer === secretCode) {
-    sessionStorage.setItem("allowMonitor", "yes");
-    window.location.href = "monitor.html";
-  }
-});
-
-// ----- HISTORIQUES ---------
-
 function loadHistory(key) {
   return JSON.parse(localStorage.getItem(key) || "[]");
 }
@@ -553,40 +125,138 @@ function addSendRecord(to, text) {
   const H = loadHistory("historySend");
   H.unshift({ to, text, date: new Date().toISOString() });
   saveHistory("historySend", H);
+  renderSendHistory();
 }
 function addRecvRecord(from, text) {
   const H = loadHistory("historyRecv");
   H.unshift({ from, text, date: new Date().toISOString() });
   saveHistory("historyRecv", H);
+  renderRecvHistory();
 }
 
-// ---- Checking - BLUETOOTH -----------
+function renderSendHistory() {
+  const ul = document.getElementById("history-send-list");
+  ul.innerHTML = loadHistory("historySend")
+    .map(
+      (r, i) =>
+        `<li>
+      <div><strong>${r.to}</strong><br><small>${new Date(
+          r.date
+        ).toLocaleString()}</small></div>
+      <button class="delete-btn" data-i="${i}">&times;</button>
+    </li>`
+    )
+    .join("");
+  ul.querySelectorAll(".delete-btn").forEach((btn) =>
+    btn.addEventListener("click", (e) => {
+      const i = +e.target.dataset.i;
+      const H = loadHistory("historySend");
+      H.splice(i, 1);
+      saveHistory("historySend", H);
+      renderSendHistory();
+    })
+  );
+}
 
-function checkBluetoothUI() {
-  const scanBtn = document.getElementById("scan-btn");
-  if (!navigator.bluetooth) {
-    scanBtn.disabled = true;
-    updateStatus(
-      "Web Bluetooth non supporté ici. Testez sur Chrome Android ou activez flags Chrome.",
-      "error"
-    );
-    return false;
+function renderRecvHistory() {
+  const ul = document.getElementById("history-recv-list");
+  ul.innerHTML = loadHistory("historyRecv")
+    .map(
+      (r, i) =>
+        `<li>
+      <div><strong>${r.from}</strong><br><small>${new Date(
+          r.date
+        ).toLocaleString()}</small></div>
+      <p>${r.text}</p>
+      <button class="delete-btn" data-i="${i}">&times;</button>
+    </li>`
+    )
+    .join("");
+  ul.querySelectorAll(".delete-btn").forEach((btn) =>
+    btn.addEventListener("click", (e) => {
+      const i = +e.target.dataset.i;
+      const H = loadHistory("historyRecv");
+      H.splice(i, 1);
+      saveHistory("historyRecv", H);
+      renderRecvHistory();
+    })
+  );
+}
+
+// -----------------------------
+// MODAL PSEUDO & INIT
+// -----------------------------
+function initUsernameModal() {
+  const userModal = document.getElementById("username-modal");
+  const userInput = document.getElementById("username-input");
+  const userSubmit = document.getElementById("username-submit");
+
+  if (!username) {
+    userModal.classList.add("active");
+    userSubmit.addEventListener("click", () => {
+      const v = userInput.value.trim();
+      if (v.length < 2) return alert("Pseudo trop court");
+      username = v;
+      localStorage.setItem("username", v);
+      socket.emit("register", { id: socket.id, username });
+      userModal.classList.remove("active");
+    });
   }
-  // Optionnel : vérifier l’availability
-  navigator.bluetooth.getAvailability().then((avail) => {
-    if (!avail) {
-      scanBtn.disabled = true;
-      updateStatus(
-        "Activez le Bluetooth de votre appareil pour utiliser cette fonction.",
-        "error"
-      );
-    }
-  });
-  return true;
 }
 
-// Au lieu de directement dans init()
+// -----------------------------
+// MENU MOBILE & MODE SWITCH
+// -----------------------------
+const hamBtn = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobile-nav");
+const btnEmitter = document.getElementById("btn-emitter");
+const btnReceiver = document.getElementById("btn-receiver");
+const modeLabel = document.getElementById("mode-label");
+let mode = "emitter";
+
+hamBtn.addEventListener("click", () => {
+  hamBtn.classList.toggle("active");
+  mobileNav.classList.toggle("active");
+});
+
+function switchMode(m) {
+  mode = m;
+  modeLabel.textContent = m === "emitter" ? "Émetteur" : "Récepteur";
+  document
+    .querySelectorAll(".mode-btn")
+    .forEach((btn) => btn.classList.toggle("active", btn.id.endsWith(m)));
+  document.querySelector("#sender-history").style.display =
+    m === "emitter" ? "block" : "none";
+  document.querySelector("#receiver-history").style.display =
+    m === "receiver" ? "block" : "none";
+}
+btnEmitter.addEventListener("click", () => switchMode("emitter"));
+btnReceiver.addEventListener("click", () => switchMode("receiver"));
+
+// -----------------------------
+// SERVICE WORKER (PWA)
+// -----------------------------
+let swRegistration = null;
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    swRegistration = await navigator.serviceWorker.register(
+      "service-worker.js",
+      { scope: "./" }
+    );
+  });
+}
+
+// -----------------------------
+// INITIALISATION GLOBALE
+// -----------------------------
 window.addEventListener("load", () => {
-  checkBluetoothUI();
-  init();
+  initUsernameModal();
+  renderSendHistory();
+  renderRecvHistory();
+
+  // Bind send/scan
+  dom.btnSend.addEventListener("click", sendText);
+  dom.btnScan.addEventListener("click", () => {
+    socket.emit("requestUserList");
+  });
 });

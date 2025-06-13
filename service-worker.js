@@ -8,6 +8,13 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // **Ignore** toutes les requêtes vers /socket.io/
+  if (url.pathname.startsWith("/socket.io/")) {
+    return; // on laisse passer la requête au réseau
+  }
+
   event.respondWith(
     caches.match(event.request).then((resp) => resp || fetch(event.request))
   );
