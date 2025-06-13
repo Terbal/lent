@@ -9,12 +9,8 @@ const srv = http.createServer(app);
 const io = new Server(srv, {
   cors: {
     origin: [
-      // liste des origines autorisées
-      "http://127.0.0.1:5500",
-      "http://localhost:5500",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      // tu peux aussi mettre '*' pour autoriser toutes les origines
+      "https://terbal.github.io", // ta PWA
+      "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev",
     ],
     methods: ["GET", "POST"],
   },

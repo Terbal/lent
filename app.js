@@ -1,7 +1,9 @@
 // -----------------------------
 // CONFIGURATION & INIT SOCKET
 // -----------------------------
-const socket = io("http://localhost:3000");
+const socket = io(
+  "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev"
+);
 
 socket.on("connect", () => {
   console.log("Connecté au serveur Socket.io, id:", socket.id);
