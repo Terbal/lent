@@ -10,7 +10,7 @@ const io = new Server(srv, {
   cors: {
     origin: [
       "https://terbal.github.io", // ta PWA
-      "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev",
+      "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev/",
     ],
     methods: ["GET", "POST"],
   },

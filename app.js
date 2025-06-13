@@ -2,7 +2,7 @@
 // CONFIGURATION & INIT SOCKET
 // -----------------------------
 const socket = io(
-  "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev"
+  "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev/"
 );
 
 socket.on("connect", () => {
