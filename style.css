@@ -1,0 +1,265 @@
+/* — Variables & resets — */
+:root {
+  --bg: #1f1f1f;
+  --card: #2b2b2b;
+  --text: #e0e0e0;
+  --primary: #4cc9f0;
+  --primary-dark: #3aa8c9;
+  --accent: #4895ef;
+  --radius: 8px;
+  --transition: 0.3s ease;
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Segoe UI",sans-serif; color:var(--text); }
+body { background:var(--bg); display:flex; flex-direction:column; min-height:100vh; }
+
+/* — Layout principal — */
+.app-container { flex:1; display:flex; }
+.sidebar {
+  width:220px; background:#121212; padding:2rem 1rem; display:flex; flex-direction:column; align-items:center;
+}
+.logo img { width:120px; margin-bottom:2rem; }
+.nav .nav-link {
+  display:block; width:100%; padding:.75rem 1rem; margin:.25rem 0;
+  color:var(--text); text-decoration:none; border-radius:var(--radius);
+  transition:background var(--transition);
+}
+.nav .nav-link.active,
+.nav .nav-link:hover { background:var(--card); }
+
+/* — Boutons de mode — */
+.mode-switch { margin-top:6rem; }
+.mode-btn {
+  background:transparent; border:1px solid var(--primary); color:var(--primary);
+  padding:.5rem 1rem; margin:0 .25rem; border-radius:var(--radius); cursor:pointer;
+  transition:background var(--transition), color var(--transition); 
+}
+.mode-btn.active,
+.mode-btn:hover { background:var(--primary); color:var(--bg); }
+
+/* — Contenu principal — */
+.main-content { flex:1; padding:2rem; }
+.header h1 { font-size:2rem; margin-bottom:.25rem; }
+.subtitle { color:var(--accent); margin-bottom:1rem; }
+.mode-indicator { margin-bottom:1.5rem; }
+
+/* — Cartes — */
+.card {
+  background:var(--card); border-radius:var(--radius);
+  padding:1.5rem; margin-bottom:1.5rem;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+.card h2 { margin-bottom:1rem; }
+
+/* — Inputs & boutons — */
+textarea {
+  width:100%; height:100px; padding:.75rem; border:none; border-radius:var(--radius);
+  background:#1a1a1a; color:var(--text); margin-bottom:1rem; resize:vertical;
+}
+textarea::placeholder { color:rgba(224,224,224,0.6); }
+.btn {
+  background:var(--primary); border:none; padding:.75rem 1.5rem;
+  border-radius:var(--radius); cursor:pointer;
+  transition:background var(--transition), transform var(--transition);
+}
+.btn:hover { background:var(--primary-dark); transform:translateY(-2px); }
+.btn:active { transform:translateY(0); }
+.btn.outline {
+  background:transparent; border:1px solid var(--primary); color:var(--primary);
+}
+.btn.outline:hover { background:var(--primary); color:var(--bg); }
+
+/* — Liste d’appareils — */
+.devices-list {
+  list-style:none; max-height:200px; overflow-y:auto; margin:1rem 0;
+}
+.device-item {
+  display:flex; align-items:center; padding:.75rem;
+  background:#1a1a1a; border-radius:var(--radius);
+  margin-bottom:.5rem; cursor:pointer; transition:background var(--transition);
+}
+.device-item:hover,
+.device-item.active { background:var(--card); }
+.device-icon { font-size:1.5rem; margin-right:1rem; }
+.status { text-align:center; margin-top:.5rem; }
+
+/* — Popup confirmation — */
+.popup {
+  position:fixed; inset:0; background:rgba(0,0,0,0.75);
+  display:none; align-items:center; justify-content:center;
+}
+.popup.active { display:flex; }
+.popup-content {
+  background:var(--card); padding:2rem; border-radius:var(--radius);
+  text-align:center; width:90%; max-width:360px;
+}
+.popup-actions { margin-top:1.5rem; display:flex; justify-content:space-around; }
+.popup pre {
+  background:#1a1a1a; padding:1rem; border-radius:var(--radius);
+  max-height:120px; overflow-y:auto; margin:1rem 0;
+}
+
+/* — Footer pro — */
+.footer {
+  background:#121212; padding:1rem; text-align:center;
+  font-size:.9rem;
+}
+.footer-links {
+  margin-bottom:.5rem;
+}
+.footer-links a {
+  color:var(--primary); margin:0 .5rem; text-decoration:none;
+  transition:color var(--transition);
+}
+.footer-links a:hover { color:var(--accent); }
+
+/* — Responsive — */
+@media (max-width: 768px) {
+   .app-container { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 1rem;
+  }
+  
+  /* On rend visible la .mode-switch et on la centre */
+  .mode-switch {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
+  .main-content { padding:1rem; }
+}
+
+/* — Modal d'installation PWA — */
+.install-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.install-modal.active {
+  display: flex;
+}
+.install-content {
+  background: var(--card);
+  padding: 2rem;
+  border-radius: var(--radius);
+  text-align: center;
+  max-width: 320px;
+  width: 90%;
+}
+.install-content h3 {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+.install-content p {
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+.install-buttons {
+  display: flex;
+  justify-content: space-around;
+}
+.install-buttons .btn {
+  flex: 1;
+  margin: 0 .25rem;
+}
+
+
+/* Page téléchargements */
+.downloads-page {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.download-card {
+  text-align: center;
+}
+.download-card h2 {
+  margin-bottom: 1rem;
+}
+
+
+/* Modal de scan */
+.modal {
+  position: fixed; inset: 0;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.75); z-index: 2000;
+}
+.modal.active { display: flex; }
+.modal-content {
+  background: var(--card); padding:2rem; border-radius:var(--radius);
+  width: 90%; max-width: 360px; text-align: center;
+}
+#scan-device-list {
+  list-style: none; max-height:200px; overflow-y:auto; margin:1rem 0;
+}
+#scan-device-list li {
+  padding:.5rem; background:#1a1a1a; border-radius:4px;
+  margin:.3rem 0; cursor:pointer;
+}
+#scan-device-list li.selected { background: var(--primary); color: var(--bg); }
+
+
+/* — Choisie ton pseudo — */
+
+.modal.active { display: flex; }
+#username-modal .modal-content {
+  max-width: 300px;
+}
+#username-input {
+  width: 100%; padding: .5rem; margin: 1rem 0; border-radius: var(--radius);
+  border: 1px solid var(--card); background: #1a1a1a; color: var(--text);
+}
+
+
+
+
+/* Hamburger */
+/* — Hamburger par défaut caché — */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 3000;
+}
+
+/* Les trois barres */
+.hamburger span {
+  width: 25px;
+  height: 3px;
+  background: var(--text);
+  transition: transform 0.3s, opacity 0.3s;
+}
+.mobile-nav {
+  display:none; flex-direction:column; background:var(--card);
+  position:absolute; top:60px; right:10px; border-radius:var(--radius);
+  overflow:hidden;
+}
+.mobile-nav a {
+  padding:.75rem 1rem; color:var(--text); text-decoration:none;
+  border-bottom:1px solid rgba(224,224,224,0.1);
+}
+.mobile-nav a:last-child { border:none; }
+@media(max-width:768px) {
+.hamburger {
+    display: flex;
+    position: fixed;
+    top: 50px;
+    right: 30px;
+  }
+
+  /* Cache la nav desktop */
+  .nav { display: none !important; }/* désactiver la nav desktop */
+}
+.hamburger.active span:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
+.hamburger.active span:nth-child(2) { opacity:0; }
+.hamburger.active span:nth-child(3) { transform:rotate(-45deg) translate(5px,-5px); }
+.mobile-nav.active { display:flex; }

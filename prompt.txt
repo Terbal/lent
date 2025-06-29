@@ -1,0 +1,24 @@
+cette partie y'a que les premier bouton qui fonctionne et affiche ça dans la barre de navigation "http://127.0.0.1:5500/index.html#receiver" =>       <div class="logo"> 
+        <img style="border-radius: 50%;" src="/web-app-manifest-512x512.png" alt="Logo Lent">
+      </div>
+      <nav class="nav">
+        <a href="#" class="nav-link active">Accueil</a>
+        <a href="#receiver" class="nav-link">Récepteur</a>
+      </nav>                la partie choix mode ne fait que changer le mode sur l'interface  
+      <!-- Choix de mode -->
+      <div class="mode-switch">
+        <button id="btn-emitter" class="mode-btn active">Émetteur</button>
+        <button id="btn-receiver" class="mode-btn">Récepteur</button>
+      </div>
+    </aside>est ce qu'il faudrait le garder est ce que ça joue vraiment un role ?                                   et la section choix de mode ne fonctionne pas du tout               empeche l'acces à la page monotor autrement pour y acceder il faut juste taper monitor    Faudrrait regler aussi ces erreurs => app.js:117 
+ SecurityError: Failed to execute 'requestDevice' on 'Bluetooth': Must be handling a user gesture to show a permission request.
+    at initReceiver (app.js:97:46)
+    at init (app.js:225:5)
+app.js:36 SW scope: http://127.0.0.1:5500/
+favicon-192x192.png:1 
+ 
+ GET http://127.0.0.1:5500/favicon-192x192.png 404 (Not Found)
+index.html#receiver:1 
+ Error while trying to use the following icon from the Manifest: http://127.0.0.1:5500/favicon-192x192.png (Download error or resource isn't a valid image)
+﻿
+         

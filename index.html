@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- <base href="/lent/"> -->
+    <title>Lent - Partage sans Internet</title>
+    <meta name="description" content="Partagez du texte entre appareils via Bluetooth sans internet">
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#4361ee" />
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" href="./favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <!-- <link rel="manifest" href="./site.webmanifest" /> -->
+    
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="./web-app-manifest-512x512.png" alt="Logo Lent">
+    </div>
+
+   <!-- NAVIGATION (optionnelle) -->
+<button id="hamburger" class="hamburger">
+  <span></span><span></span><span></span>
+</button>
+<nav id="mobile-nav" class="mobile-nav">
+  <a href="index.html">Accueil</a>
+  <a href="downloads.html">Téléchargements</a>
+  <a href="faq.html">FAQ</a>
+  <a href="about.html">À propos</a>
+</nav>
+
+
+    <!-- Choix de mode -->
+    <div class="mode-switch">
+      <button id="btn-emitter" class="mode-btn active">Émetteur</button>
+      <button id="btn-receiver" class="mode-btn">Récepteur</button>
+    </div>
+  </aside>
+
+
+    <!-- Main -->
+    <main class="main-content">
+      <header class="header">
+        <h1>Lent</h1>
+        <p class="subtitle">Rapide comme l’éclair… mais pas tant que ça 😉</p>
+        <div class="mode-indicator">Mode : <span id="mode-label">Émetteur</span></div>
+      </header>
+
+      <section class="card">
+        <h2>1. Texte à partager</h2>
+        <textarea id="text-input" placeholder="Saisis ou sélectionne du texte…"></textarea>
+        <button id="send-btn" class="btn">🚀 Envoyer</button>
+      </section>
+
+      <section class="card">
+        <h2>2. Appareils disponibles</h2>
+        <button id="scan-btn" class="btn outline">🔍 Rechercher</button>
+        <ul id="devices-list" class="devices-list"></ul>
+        <div id="transfer-status" class="status">Prêt à transférer…</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Popup confirmation -->
+  <div id="confirmation-popup" class="popup">
+    <div class="popup-content">
+      <h3>Demande de transfert</h3>
+      <p><strong id="sender-name">Alice</strong> souhaite envoyer :</p>
+      <pre id="preview-text">…</pre>
+      <div class="popup-actions">
+        <button id="reject-btn" class="btn outline">Refuser</button>
+        <button id="accept-btn" class="btn">Accepter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer pro -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="./faq.html">FAQ</a>
+      <a href="./contact.html">Contact</a>
+      <a href="./about.html">À propos</a>
+       <a href="downloads.html" class="nav-link">Téléchargements</a>
+    </div>
+    <p>© 2025 Lent • Tous droits réservés</p>
+  </footer>
+
+   <!-- Modal d'installation PWA -->
+  <div id="install-modal" class="install-modal">
+    <div class="install-content">
+      <h3>Ajouter Lent à votre écran d’accueil ?</h3>
+      <p>Installez l’application pour y accéder plus rapidement et hors-ligne.</p>
+      <div class="install-buttons">
+        <button id="install-accept" class="btn">Installer</button>
+        <button id="install-cancel" class="btn outline">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  
+
+ <div id="username-modal" class="modal">
+
+  <div class="modal-content">
+    <h3>Bienvenue !</h3>
+    <p>Entrez votre pseudo pour commencer :</p>
+    <input type="text" id="username-input" placeholder="Votre pseudo…" />
+    <button id="username-submit" class="btn">Valider</button>
+  </div>
+</div>
+
+<!-- Modal de scan (scan-modal) -->
+<div id="scan-modal" class="modal">
+  <div class="modal-content">
+    <h3>Appareils compatibles</h3>
+    <ul id="scan-device-list"></ul>
+    <button id="associate-btn" class="btn outline" disabled>Associer</button>
+    <button id="scan-cancel" class="btn">Annuler</button>
+  </div>
+</div>
+
+<!-- Historique émetteur -->
+<section id="sender-history" class="card">
+  <h2>Historique d’envois</h2>
+  <ul id="history-send-list" class="history-list"></ul>
+</section>
+
+<!-- Historique récepteur -->
+<section id="receiver-history" class="card" style="display:none;">
+  <h2>Messages reçus</h2>
+  <ul id="history-recv-list" class="history-list"></ul>
+</section>
+
+
+
+  
+
+<!-- Socket.io client -->
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<!-- Ton code app.js -->
+<script src="./app.js"></script>
+
+</body>
+
+</html>
