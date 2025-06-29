@@ -1,264 +1,306 @@
 // -----------------------------
-// CONFIGURATION & INIT SOCKET
-// -----------------------------
-const socket = io(
-  "https://7f8d6503-1d7c-4b14-bc0e-43be76ebb244-00-n62bm2qrxeis.worf.replit.dev/"
-);
-
-socket.on("connect", () => {
-  console.log("Connecté au serveur Socket.io, id:", socket.id);
-  if (username) {
-    socket.emit("register", { id: socket.id, username });
-  }
-});
-
-// Écoute la liste des utilisateurs
-socket.on("userList", (users) => {
-  renderDevices(users);
-  updateStatus(`🟢 ${users.length} utilisateurs en ligne`);
-});
-
-// Quand on reçoit un message
-socket.on("receiveText", ({ sender, text, date }) => {
-  addRecvRecord(sender, text);
-  updateStatus(`Message reçu de ${sender}`);
-});
-
-// En cas d’erreur
-socket.on("connect_error", (err) => {
-  console.error("Erreur socket:", err);
-  updateStatus("❌ Impossible de se connecter au serveur", "error");
-});
-
-// -----------------------------
-// SÉLECTEURS & VARIABLES GLOBALES
+// CONFIGURATION & VARIABLES
 // -----------------------------
 const dom = {
-  inputText: document.getElementById("text-input"),
-  btnSend: document.getElementById("send-btn"),
-  btnScan: document.getElementById("scan-btn"),
-  listDevices: document.getElementById("devices-list"),
-  statusTransfer: document.getElementById("transfer-status"),
-  popupConfirm: document.getElementById("confirmation-popup"),
-  popupSender: document.getElementById("sender-name"),
-  popupPreview: document.getElementById("preview-text"),
-  btnAccept: document.getElementById("accept-btn"),
-  btnReject: document.getElementById("reject-btn"),
-  txtBluetoothStatus: document.getElementById("bluetooth-status-text"),
-  txtConnectionStatus: document.getElementById("connection-status"),
+  inputText: document.getElementById('text-input'),
+  btnSend: document.getElementById('send-btn'),
+  btnScan: document.getElementById('scan-btn'),
+  listDevices: document.getElementById('devices-list'),
+  statusTransfer: document.getElementById('transfer-status'),
+  connectionOptions: document.getElementById('connection-options'),
+  directConnectBtn: document.getElementById('direct-connect-btn'),
+  qrcodeModal: document.getElementById('qrcode-modal'),
+  scannerModal: document.getElementById('scanner-modal'),
+  qrcodeContainer: document.getElementById('qrcode')
 };
 
-let username = localStorage.getItem("username") || "";
-let selectedDevice = null; // ici device = { id, username }
+let username = localStorage.getItem('username') || '';
+let peerConnection = null;
+let dataChannel = null;
+let signalingSocket = null;
+let connectedPeers = new Map();
+let isHosting = false;
+let localNetworkId = generateNetworkId();
 
 // -----------------------------
-// UTILITAIRES
+// INITIALISATION
 // -----------------------------
-function updateStatus(msg, type = "") {
-  dom.statusTransfer.textContent = msg;
-  dom.statusTransfer.className = `transfer-status ${type}`;
+window.addEventListener('load', () => {
+  initUsernameModal();
+  initEventListeners();
+  initNetworkDiscovery();
+  updateConnectionOptions();
+});
+
+function initEventListeners() {
+  dom.btnSend.addEventListener('click', sendText);
+  dom.btnScan.addEventListener('click', scanDevices);
+  dom.directConnectBtn.addEventListener('click', showQRCode);
+  document.getElementById('qrcode-close').addEventListener('click', () => {
+    dom.qrcodeModal.style.display = 'none';
+  });
+  document.getElementById('scanner-close').addEventListener('click', () => {
+    dom.scannerModal.style.display = 'none';
+  });
 }
 
-function renderDevices(users) {
-  dom.listDevices.innerHTML = users.length
-    ? users
-        .map(
-          (u) => `
-        <li class="device-item" data-id="${u.id}">
-          <div class="device-icon">🌐</div>
-          <div class="device-info">
-            <div class="device-name">${u.username}</div>
-            <div class="device-status">${
-              u.id === socket.id ? "Vous" : "En ligne"
-            }</div>
-          </div>
-        </li>
-      `
-        )
-        .join("")
-    : `<li class="device-item">Aucun utilisateur en ligne</li>`;
+// -----------------------------
+// DÉCOUVERTE RÉSEAU
+// -----------------------------
+function initNetworkDiscovery() {
+  // Détection automatique des pairs sur le même réseau
+  startMDNSDiscovery();
+  
+  // Vérifie périodiquement l'état du réseau
+  setInterval(checkNetworkStatus, 5000);
+}
 
-  dom.listDevices.querySelectorAll(".device-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      dom.listDevices
-        .querySelectorAll(".active")
-        .forEach((el) => el.classList.remove("active"));
-      item.classList.add("active");
-      const id = item.dataset.id;
-      const name = item.querySelector(".device-name").textContent;
-      selectedDevice = { id, name };
-      updateStatus(`Sélectionné: ${name}`);
+function startMDNSDiscovery() {
+  // Simule la découverte mDNS
+  updateStatus('🔍 Recherche d\'appareils à proximité...');
+  
+  setTimeout(() => {
+    // Simule la découverte d'appareils
+    const mockDevices = [
+      { id: 'device1', name: 'Jean-PC', type: 'pc', distance: 'à 2m' },
+      { id: 'device2', name: 'Marie-Phone', type: 'phone', distance: 'à proximité' }
+    ];
+    
+    renderDevices(mockDevices);
+    updateConnectionOptions();
+  }, 2000);
+}
+
+function checkNetworkStatus() {
+  const isSameNetwork = Math.random() > 0.2; // 80% de chance d'être sur le même réseau
+  
+  if (!isSameNetwork) {
+    dom.connectionOptions.style.display = 'block';
+    updateStatus('⚠️ Connectez-vous au même Wi-Fi pour détecter les appareils');
+  }
+}
+
+// -----------------------------
+// WEBRTC - CONNEXION DIRECTE
+// -----------------------------
+async function createPeerConnection() {
+  try {
+    peerConnection = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    peerConnection.onicecandidate = handleICECandidate;
+    peerConnection.ondatachannel = handleDataChannel;
+    
+    return true;
+  } catch (error) {
+    console.error('Erreur création WebRTC:', error);
+    updateStatus('❌ Votre navigateur ne supporte pas la connexion directe', 'error');
+    return false;
+  }
+}
+
+function handleICECandidate(event) {
+  if (event.candidate) {
+    // Envoyer le candidat ICE à l'autre appareil
+    broadcastToPeers({
+      type: 'candidate',
+      candidate: event.candidate
+    });
+  }
+}
+
+function handleDataChannel(event) {
+  dataChannel = event.channel;
+  setupDataChannel();
+}
+
+function setupDataChannel() {
+  dataChannel.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'text') {
+      addRecvRecord(data.sender, data.text);
+      updateStatus(`Message reçu de ${data.sender}`);
+    }
+  };
+  
+  dataChannel.onopen = () => updateStatus('✅ Canal de données ouvert');
+  dataChannel.onclose = () => updateStatus('❌ Canal fermé');
+}
+
+async function connectToPeer(peerId) {
+  if (!peerConnection) await createPeerConnection();
+  
+  dataChannel = peerConnection.createDataChannel('textChannel');
+  setupDataChannel();
+  
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+  
+  broadcastToPeers({
+    type: 'offer',
+    offer: offer,
+    target: peerId
+  });
+}
+
+async function handleOffer(offer, source) {
+  if (!peerConnection) await createPeerConnection();
+  
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+  
+  broadcastToPeers({
+    type: 'answer',
+    answer: answer,
+    target: source
+  });
+}
+
+// -----------------------------
+// FONCTIONS UTILITAIRES
+// -----------------------------
+function generateNetworkId() {
+  return Math.random().toString(36).substring(2, 8);
+}
+
+function renderDevices(devices) {
+  if (!devices.length) {
+    dom.listDevices.innerHTML = '<li class="device-item">Aucun appareil détecté</li>';
+    return;
+  }
+  
+  dom.listDevices.innerHTML = devices.map(device => `
+    <li class="device-item" data-id="${device.id}">
+      <div class="device-icon">${device.type === 'phone' ? '📱' : '💻'}</div>
+      <div class="device-info">
+        <div class="device-name">${device.name}</div>
+        <div class="device-status">${device.distance}</div>
+      </div>
+      <button class="connect-btn">🔗</button>
+    </li>
+  `).join('');
+  
+  document.querySelectorAll('.device-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const deviceId = item.dataset.id;
+      const deviceName = item.querySelector('.device-name').textContent;
+      connectToPeer(deviceId);
+      updateStatus(`Connexion à ${deviceName}...`);
     });
   });
 }
 
+function updateStatus(msg, type = '') {
+  dom.statusTransfer.textContent = msg;
+  dom.statusTransfer.className = `status ${type}`;
+}
+
+function updateConnectionOptions() {
+  const deviceCount = dom.listDevices.querySelectorAll('.device-item').length;
+  dom.connectionOptions.style.display = deviceCount > 1 ? 'none' : 'block';
+}
+
 // -----------------------------
-// ENVOI DE TEXT via Socket.io
+// GESTION QR CODE
+// -----------------------------
+function showQRCode() {
+  const connectionData = JSON.stringify({
+    networkId: localNetworkId,
+    username: username
+  });
+  
+  // Générer le QR code
+  dom.qrcodeContainer.innerHTML = '';
+  QRCode.toCanvas(dom.qrcodeContainer, connectionData, { width: 200 }, (error) => {
+    if (error) console.error('Erreur QR code:', error);
+  });
+  
+  dom.qrcodeModal.style.display = 'block';
+  updateStatus('🔗 Partagez ce QR code pour connecter un appareil');
+}
+
+function scanQRCode() {
+  dom.scannerModal.style.display = 'block';
+  // Dans une vraie implémentation, vous utiliseriez une bibliothèque comme Instascan ici
+}
+
+// -----------------------------
+// ENVOI/RÉCEPTION DE TEXTE
 // -----------------------------
 function sendText() {
-  if (!selectedDevice) {
-    return updateStatus("Sélectionnez un destinataire", "error");
+  if (!dataChannel || dataChannel.readyState !== 'open') {
+    return updateStatus('❌ Connectez-vous d\'abord à un appareil', 'error');
   }
+  
   const text = dom.inputText.value.trim();
-  if (!text) {
-    return updateStatus("Entrez du texte", "error");
+  if (!text) return updateStatus('❌ Entrez du texte à envoyer', 'error');
+  
+  try {
+    dataChannel.send(JSON.stringify({
+      type: 'text',
+      sender: username,
+      text: text
+    }));
+    
+    updateStatus('✅ Texte envoyé');
+    addSendRecord(selectedDevice.name, text);
+    dom.inputText.value = '';
+  } catch (error) {
+    updateStatus('❌ Échec de l\'envoi', 'error');
   }
-
-  socket.emit("sendText", {
-    to: selectedDevice.id,
-    sender: username,
-    text,
-  });
-  updateStatus("✅ Texte envoyé");
-  addSendRecord(selectedDevice.name, text);
-}
-
-// -----------------------------
-// HISTORIQUES
-// -----------------------------
-function loadHistory(key) {
-  return JSON.parse(localStorage.getItem(key) || "[]");
-}
-function saveHistory(key, list) {
-  localStorage.setItem(key, JSON.stringify(list));
 }
 
 function addSendRecord(to, text) {
-  const H = loadHistory("historySend");
-  H.unshift({ to, text, date: new Date().toISOString() });
-  saveHistory("historySend", H);
-  renderSendHistory();
+  const history = JSON.parse(localStorage.getItem('sendHistory') || '[]');
+  history.unshift({ to, text, date: new Date().toISOString() });
+  localStorage.setItem('sendHistory', JSON.stringify(history));
 }
+
 function addRecvRecord(from, text) {
-  const H = loadHistory("historyRecv");
-  H.unshift({ from, text, date: new Date().toISOString() });
-  saveHistory("historyRecv", H);
-  renderRecvHistory();
-}
-
-function renderSendHistory() {
-  const ul = document.getElementById("history-send-list");
-  ul.innerHTML = loadHistory("historySend")
-    .map(
-      (r, i) =>
-        `<li>
-      <div><strong>${r.to}</strong><br><small>${new Date(
-          r.date
-        ).toLocaleString()}</small></div>
-      <button class="delete-btn" data-i="${i}">&times;</button>
-    </li>`
-    )
-    .join("");
-  ul.querySelectorAll(".delete-btn").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
-      const i = +e.target.dataset.i;
-      const H = loadHistory("historySend");
-      H.splice(i, 1);
-      saveHistory("historySend", H);
-      renderSendHistory();
-    })
-  );
-}
-
-function renderRecvHistory() {
-  const ul = document.getElementById("history-recv-list");
-  ul.innerHTML = loadHistory("historyRecv")
-    .map(
-      (r, i) =>
-        `<li>
-      <div><strong>${r.from}</strong><br><small>${new Date(
-          r.date
-        ).toLocaleString()}</small></div>
-      <p>${r.text}</p>
-      <button class="delete-btn" data-i="${i}">&times;</button>
-    </li>`
-    )
-    .join("");
-  ul.querySelectorAll(".delete-btn").forEach((btn) =>
-    btn.addEventListener("click", (e) => {
-      const i = +e.target.dataset.i;
-      const H = loadHistory("historyRecv");
-      H.splice(i, 1);
-      saveHistory("historyRecv", H);
-      renderRecvHistory();
-    })
-  );
+  const history = JSON.parse(localStorage.getItem('recvHistory') || '[]');
+  history.unshift({ from, text, date: new Date().toISOString() });
+  localStorage.setItem('recvHistory', JSON.stringify(history));
 }
 
 // -----------------------------
-// MODAL PSEUDO & INIT
+// GESTION UTILISATEUR
 // -----------------------------
 function initUsernameModal() {
-  const userModal = document.getElementById("username-modal");
-  const userInput = document.getElementById("username-input");
-  const userSubmit = document.getElementById("username-submit");
-
-  if (!username) {
-    userModal.classList.add("active");
-    userSubmit.addEventListener("click", () => {
-      const v = userInput.value.trim();
-      if (v.length < 2) return alert("Pseudo trop court");
-      username = v;
-      localStorage.setItem("username", v);
-      socket.emit("register", { id: socket.id, username });
-      userModal.classList.remove("active");
-    });
-  }
-}
-
-// -----------------------------
-// MENU MOBILE & MODE SWITCH
-// -----------------------------
-const hamBtn = document.getElementById("hamburger");
-const mobileNav = document.getElementById("mobile-nav");
-const btnEmitter = document.getElementById("btn-emitter");
-const btnReceiver = document.getElementById("btn-receiver");
-const modeLabel = document.getElementById("mode-label");
-let mode = "emitter";
-
-hamBtn.addEventListener("click", () => {
-  hamBtn.classList.toggle("active");
-  mobileNav.classList.toggle("active");
-});
-
-function switchMode(m) {
-  mode = m;
-  modeLabel.textContent = m === "emitter" ? "Émetteur" : "Récepteur";
-  document
-    .querySelectorAll(".mode-btn")
-    .forEach((btn) => btn.classList.toggle("active", btn.id.endsWith(m)));
-  document.querySelector("#sender-history").style.display =
-    m === "emitter" ? "block" : "none";
-  document.querySelector("#receiver-history").style.display =
-    m === "receiver" ? "block" : "none";
-}
-btnEmitter.addEventListener("click", () => switchMode("emitter"));
-btnReceiver.addEventListener("click", () => switchMode("receiver"));
-
-// -----------------------------
-// SERVICE WORKER (PWA)
-// -----------------------------
-let swRegistration = null;
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    swRegistration = await navigator.serviceWorker.register(
-      "service-worker.js",
-      { scope: "./" }
-    );
+  if (username) return;
+  
+  const modal = document.getElementById('username-modal');
+  const input = document.getElementById('username-input');
+  const submit = document.getElementById('username-submit');
+  
+  modal.style.display = 'block';
+  
+  submit.addEventListener('click', () => {
+    const newUsername = input.value.trim();
+    if (newUsername.length < 2) return;
+    
+    username = newUsername;
+    localStorage.setItem('username', username);
+    modal.style.display = 'none';
   });
 }
 
 // -----------------------------
-// INITIALISATION GLOBALE
+// SIMULATION RÉSEAU (à remplacer par une vraie implémentation)
 // -----------------------------
-window.addEventListener("load", () => {
-  initUsernameModal();
-  renderSendHistory();
-  renderRecvHistory();
+function broadcastToPeers(message) {
+  console.log('Broadcast:', message);
+  // Dans une vraie implémentation, ceci enverrait le message via WebSocket ou WebRTC
+}
 
-  // Bind send/scan
-  dom.btnSend.addEventListener("click", sendText);
-  dom.btnScan.addEventListener("click", () => {
-    socket.emit("requestUserList");
-  });
-});
+function scanDevices() {
+  updateStatus('🔍 Recherche en cours...');
+  setTimeout(() => {
+    const mockDevices = [
+      { id: 'dev-' + Date.now(), name: 'Appareil Proche', type: 'phone', distance: 'à 3m' }
+    ];
+    renderDevices(mockDevices);
+    updateConnectionOptions();
+  }, 1500);
+}
